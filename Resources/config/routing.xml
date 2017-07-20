@@ -12,9 +12,24 @@
         <default key="_controller">fullCalendarBundle:Calendar:change</default>
         <option key="expose">true</option>
     </route>
+    <route id="fullcalendar_store" path="/fullcalendar/store">
+        <default key="_controller">fullCalendarBundle:Calendar:store</default>
+        <option key="expose">true</option>
+    </route>
+    <route id="fullcalendar_remove" path="/fullcalendar/remove">
+        <default key="_controller">fullCalendarBundle:Calendar:remove</default>
+        <option key="expose">true</option>
+    </route>
     <route id="fullcalendar_resizedate" path="/fullcalendar/resize">
         <default key="_controller">fullCalendarBundle:Calendar:resize</default>
         <option key="expose">true</option>
     </route>
-
+    <route id="fullcalendar_view" path="/fullcalendar/view">
+        <default key="_controller">fullCalendarBundle:Calendar:view</default>
+        <option key="expose">true</option>
+    </route>
+    <route id="fullcalendar_update" path="/fullcalendar/update">
+        <default key="_controller">fullCalendarBundle:Calendar:update</default>
+        <option key="expose">true</option>
+    </route>
 </routes>
