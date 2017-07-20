@@ -1,6 +1,5 @@
 {
   "name": "kronhyx/fullcalendar-bundle",
-  "version": "1.0.1",
   "type": "symfony-bundle",
   "description": "FullCalendar integration in Symfony2",
   "keywords": [
