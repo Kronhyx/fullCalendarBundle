@@ -57,12 +57,15 @@ class CalendarController extends Controller
          * @var Afectacion $event
          */
         $event = $repo->find($request->get('id'));
-
+		
+		$auditoria = $entity->getAuditoria();
+        $creador = $auditoria->getUsuario()->getNombre();
+		
         $title = $request->get('title');
         $desc = $request->get('desc');
         $type = $request->get('type');
         $affected = $request->get('affected');
-        $tipo_afectacion = $this->getDoctrine()->getRepository('CoreBundle:Tipo_Afectacion')->find($type);
+        $motivo = $this->getDoctrine()->getRepository('CoreBundle:Motivo')->find($type);
         //Va indicando los cambios que se han ido haciendo en esta actualización para poder enviarlo por correo
         $cambios = '';
 
@@ -71,9 +74,9 @@ class CalendarController extends Controller
             $event->setTitle($title);
         }
         if($event->getTipo()->getId() != $type){
-            $cambios .= '<br />El <b>Tipo:</b> <i>'.$event->getTipo()->getNombre().'<i> por '.$tipo_afectacion->getNombre();
-            $event->setTipo($tipo_afectacion);
-            $event->setBgColor($tipo_afectacion->getColor());
+            $cambios .= '<br />El <b>Tipo:</b> <i>'.$event->getTipo()->getNombre().'<i> por '.$motivo->getNombre();
+            $event->setTipo($motivo);
+            $event->setBgColor($motivo->getColor());
         }
         if($event->getDescripcion() != $desc && $event->getDescription() !== null){
             //Si no se ha asignado una descripcion
@@ -113,7 +116,7 @@ class CalendarController extends Controller
                         'Se ha modificado la Afectación: <br />
                         <b>Asunto:</b> '.$event->getTitle().'<br />
                         <b>Cambios:</b><br />'.$cambios.'
-                        <b>Por x persona</b>'
+                        <b>Por '.$creador.'</b>'
                 ]
             );
         }
@@ -133,7 +136,7 @@ class CalendarController extends Controller
                         <b>Asunto:</b> '.$event->getTitle().'<br />
                         <b>Tipo:</b> '.$event->getTipo()->getNombre().'<br />
                         <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
-                        <b>Por x persona</b>'
+                        <b>Por '.$creador.'</b>'
                     ]
                 );
                 $em->remove($el);
@@ -161,7 +164,7 @@ class CalendarController extends Controller
                         <b>Asunto:</b> '.$event->getTitle().'<br />
                         <b>Tipo:</b> '.$event->getTipo()->getNombre().'<br />
                         <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
-                        <b>Por x persona</b>'
+                        <b>Por '.$creador.'</b>'
                 ]
             );
         }

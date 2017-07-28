@@ -59,7 +59,8 @@ class CalendarManagerRegistry
         $entity = $this->manager->getRepository($this->recipient)->find($id);
         $entity->setStartDatetime(new \DateTime($newStartData));
         $entity->setEndDatetime(new \DateTime($newEndData));
-        //$creador = $auditoria->getUsuario()->getNombre();
+		$auditoria = $entity->getAuditoria();
+        $creador = $auditoria->getUsuario()->getNombre();
         foreach ($entity->getAfectados() as $afectado){
             //Envio el correo a todos los afectados
             $this->container->get('soporte')->sendMail(
@@ -72,7 +73,7 @@ class CalendarManagerRegistry
                         <b>Asunto:</b> '.$entity->getTitle().'<br />
                         <b>Tipo:</b> '.$entity->getTipo()->getNombre().'<br />
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
-                        <b>Por x persona</b>'
+                        <b>Por '.$creador.'</b>'
                 ]
             );
         }
@@ -88,12 +89,13 @@ class CalendarManagerRegistry
         $entity->setAllDay($allDay);
         $entity->setBgColor($color);
         $entity->setEndDatetime(new \DateTime($end));
-        $entity->setTipo($this->manager->getRepository('CoreBundle:Tipo_Afectacion')->find($type));
+        $entity->setTipo($this->manager->getRepository('CoreBundle:Motivo')->find($type));
         $entity->setTitle($title);
 
         $this->save($entity);
 
-        //$creador = $auditoria->getUsuario()->getNombre();
+        $auditoria = $entity->getAuditoria();
+        $creador = $auditoria->getUsuario()->getNombre();
 
         //Separo los ids pasados en un arreglo
         $ids = preg_split('/,/', $affected);
@@ -113,7 +115,7 @@ class CalendarManagerRegistry
                         <b>Asunto:</b> '.$entity->getTitle().'<br />
                         <b>Tipo:</b> '.$entity->getTipo()->getNombre().'<br />
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
-                        <b>Por x persona</b>'
+                        <b>Por '.$creador.'</b>'
                 ]
             );
             $afectado->setUsuario($usuario);
@@ -128,7 +130,8 @@ class CalendarManagerRegistry
          * @var Afectacion $entity
          */
         $entity = $this->manager->getRepository($this->recipient)->find($id);
-        //$creador = $auditoria->getUsuario()->getNombre();
+        $auditoria = $entity->getAuditoria();
+        $creador = $auditoria->getUsuario()->getNombre();
         /**
          * @var Afectado $afectado
          */
@@ -144,7 +147,7 @@ class CalendarManagerRegistry
                         <b>Asunto:</b> '.$entity->getTitle().'<br />
                         <b>Tipo:</b> '.$entity->getTipo()->getNombre().'<br />
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
-                        <b>Por x persona</b>'
+                        <b>Por '.$creador.'</b>'
                 ]
             );
         }
@@ -157,6 +160,8 @@ class CalendarManagerRegistry
          */
         $entity = $this->manager->getRepository($this->recipient)->find($id);
         $entity->setEndDatetime(new \DateTime($newDate));
+		$auditoria = $entity->getAuditoria();
+        $creador = $auditoria->getUsuario()->getNombre();
         foreach ($entity->getAfectados() as $afectado){
             //Envio el correo a todos los afectados
             $this->container->get('soporte')->sendMail(
@@ -169,7 +174,7 @@ class CalendarManagerRegistry
                         <b>Asunto:</b> '.$entity->getTitle().'<br />
                         <b>Tipo:</b> '.$entity->getTipo()->getNombre().'<br />
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
-                        <b>Por x persona</b>'
+                        <b>Por '.$creador.'</b>'
                 ]
             );
         }
