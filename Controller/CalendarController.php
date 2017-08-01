@@ -45,8 +45,8 @@ class CalendarController extends Controller
         $ids = '';
         foreach ($afectados as $afectado)
             $ids .= $afectado->getUsuario()->getId().',';
-        $tipo = $evento->getTipo();
-        $dato_evento = array('title' => $evento->getTitle(), 'type' => (isset($tipo))?$evento->getTipo()->getId():null, 'desc' => $evento->getDescripcion(), 'affected' => trim($ids,','));
+        $tipo = $evento->getMotivo();
+        $dato_evento = array('title' => $evento->getTitle(), 'type' => (isset($tipo))?$evento->getMotivo()->getId():null, 'desc' => $evento->getDescripcion(), 'affected' => trim($ids,','));
         return new Response(json_encode($dato_evento));
     }
 
@@ -58,7 +58,7 @@ class CalendarController extends Controller
          */
         $event = $repo->find($request->get('id'));
 		
-		$auditoria = $entity->getAuditoria();
+		$auditoria = $event->getAuditoria();
         $creador = $auditoria->getUsuario()->getNombre();
 		
         $title = $request->get('title');
@@ -73,9 +73,9 @@ class CalendarController extends Controller
             $cambios .= 'El <b>Asunto:</b> <i>'.$event->getTitle().'<i> por '.$title;
             $event->setTitle($title);
         }
-        if($event->getTipo()->getId() != $type){
-            $cambios .= '<br />El <b>Tipo:</b> <i>'.$event->getTipo()->getNombre().'<i> por '.$motivo->getNombre();
-            $event->setTipo($motivo);
+        if($event->getMotivo()->getId() != $type){
+            $cambios .= '<br />El <b>Tipo:</b> <i>'.$event->getMotivo()->getNombre().'<i> por '.$motivo->getNombre();
+            $event->setMotivo($motivo);
             $event->setBgColor($motivo->getColor());
         }
         if($event->getDescripcion() != $desc && $event->getDescription() !== null){
@@ -134,7 +134,7 @@ class CalendarController extends Controller
                         'body'  =>
                             'Se ha cancelado la Afectación: <br />
                         <b>Asunto:</b> '.$event->getTitle().'<br />
-                        <b>Tipo:</b> '.$event->getTipo()->getNombre().'<br />
+                        <b>Tipo:</b> '.$event->getMotivo()->getNombre().'<br />
                         <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                     ]
@@ -162,7 +162,7 @@ class CalendarController extends Controller
                     'body'  =>
                         'Usted ha sido incluido en la Afectación: <br />
                         <b>Asunto:</b> '.$event->getTitle().'<br />
-                        <b>Tipo:</b> '.$event->getTipo()->getNombre().'<br />
+                        <b>Tipo:</b> '.$event->getMotivo()->getNombre().'<br />
                         <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                 ]

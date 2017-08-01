@@ -89,7 +89,7 @@ class CalendarManagerRegistry
         $entity->setAllDay($allDay);
         $entity->setBgColor($color);
         $entity->setEndDatetime(new \DateTime($end));
-        $entity->setTipo($this->manager->getRepository('CoreBundle:Motivo')->find($type));
+        $entity->setMotivo($this->manager->getRepository('CoreBundle:Motivo')->find($type));
         $entity->setTitle($title);
 
         $this->save($entity);
