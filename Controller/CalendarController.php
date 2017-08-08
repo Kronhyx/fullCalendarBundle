@@ -2,9 +2,10 @@
 
 namespace fadosProduccions\fullCalendarBundle\Controller;
 
-use CoreBundle\Entity\Afectacion;
-use CoreBundle\Entity\Afectado;
-use CoreBundle\Entity\Usuario;
+use AppBundle\Entity\Afectacion;
+use AppBundle\Entity\Afectado;
+use AppBundle\Entity\Usuario;
+use AppBundle\Service\SoporteService;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,7 +34,8 @@ class CalendarController extends Controller
         $response = new Response();
         $response->headers->set('Content-Type', 'application/json');
         $response->setContent($jsonContent);
-        $response->setStatusCode($status);
+        //Si remuevo esto y pongo $status no se va a crear la regla ke impide ke se agreguen eventos en fechas anteriores al dia actual
+        $response->setStatusCode(Response::HTTP_OK);
         return $response;
     }
 
@@ -44,7 +46,7 @@ class CalendarController extends Controller
         $afectados = $evento->getAfectados();
         $ids = '';
         foreach ($afectados as $afectado)
-            $ids .= $afectado->getUsuario()->getId().',';
+            $ids .= $afectado->getId().',';
         $tipo = $evento->getMotivo();
         $dato_evento = array('title' => $evento->getTitle(), 'type' => (isset($tipo))?$evento->getMotivo()->getId():null, 'desc' => $evento->getDescripcion(), 'affected' => trim($ids,','));
         return new Response(json_encode($dato_evento));
@@ -59,13 +61,13 @@ class CalendarController extends Controller
         $event = $repo->find($request->get('id'));
 		
 		$auditoria = $event->getAuditoria();
-        $creador = $auditoria->getUsuario()->getNombre();
+        $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
 		
         $title = $request->get('title');
         $desc = $request->get('desc');
         $type = $request->get('type');
         $affected = $request->get('affected');
-        $motivo = $this->getDoctrine()->getRepository('CoreBundle:Motivo')->find($type);
+        $motivo = $this->getDoctrine()->getRepository('AppBundle:Motivo')->find($type);
         //Va indicando los cambios que se han ido haciendo en esta actualización para poder enviarlo por correo
         $cambios = '';
 
@@ -78,7 +80,7 @@ class CalendarController extends Controller
             $event->setMotivo($motivo);
             $event->setBgColor($motivo->getColor());
         }
-        if($event->getDescripcion() != $desc && $event->getDescription() !== null){
+        if($event->getDescripcion() != $desc/* && $event->getDescripcion() !== null*/){
             //Si no se ha asignado una descripcion
             if($event->getDescripcion() == null || trim(strtolower($event->getDescripcion())) == 0)
                 $cambios .= '<br />La <b>Descripción>:</b> ha sido asignada '.$desc;
@@ -92,8 +94,7 @@ class CalendarController extends Controller
         //Arreglo de los ids de los afectados
         $bd_afectados = array();
         //Recorro el listado para ir agregando los ids de los afectados
-        foreach ($afectados as $el){
-            $afectado = $el->getUsuario();
+        foreach ($afectados as $afectado){
             if(isset($afectado))
                 $bd_afectados[] = $afectado->getId();
         }
@@ -106,8 +107,8 @@ class CalendarController extends Controller
             /**
              * @var Usuario $se_mantiene
              */
-            $se_mantiene = $this->getDoctrine()->getRepository('CoreBundle:Usuario')->find($id_mantiene);
-            $this->get('soporte')->sendMail(
+            $se_mantiene = $this->getDoctrine()->getRepository('AppBundle:Usuario')->find($id_mantiene);
+            $this->get(SoporteService::class)->sendMail(
                 $se_mantiene->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
@@ -121,13 +122,12 @@ class CalendarController extends Controller
             );
         }
         //Recorro el listado para ir eliminando los afectados que ya no stan
-        foreach ($afectados as $el){
-            $afectado = $el->getUsuario();
+        foreach ($afectados as $afectado){
             //Si existe el usuario del afectado y esta en la lista de los que se desea eliminar
             if(isset($afectado) && array_search($afectado->getId(), $a_eliminar) !== false)
             {
-                $this->get('soporte')->sendMail(
-                    $el->getCorreo(),
+                $this->get(SoporteService::class)->sendMail(
+                    $afectado->getCorreo(),
                     'SISTEMA DE SOPORTE::AFECTACIÓN',
                     [
                         'title' => 'SISTEMA DE SOPORTE::AFECTACIÓN',
@@ -139,22 +139,16 @@ class CalendarController extends Controller
                         <b>Por '.$creador.'</b>'
                     ]
                 );
-                $em->remove($el);
-                $em->flush();
+                $event->removeAfectado($afectado);
             }
         }
-        //$creador = $auditoria->getUsuario()->getNombre();
         foreach ($a_ingresar as $id){
             /**
              * @var Usuario $usuario
              */
-            $usuario = $this->getDoctrine()->getRepository('CoreBundle:Usuario')->find($id);
-            $nuevo = new Afectado();
-            $nuevo->setAfectacion($event);
-            $nuevo->setUsuario($usuario);
-            $em->persist($nuevo);
-            $em->flush();
-            $this->container->get('soporte')->sendMail(
+            $usuario = $this->getDoctrine()->getRepository('AppBundle:Usuario')->find($id);
+            $event->addAfectado($usuario);
+            $this->get(SoporteService::class)->sendMail(
                 $usuario->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
@@ -178,7 +172,8 @@ class CalendarController extends Controller
         $id = $request->get('id');
         $newStartData = $request->get('newStartData');
         $newEndData = $request->get('newEndData');
-        $this->get('fados.calendar.service')->changeDate($newStartData,$newEndData,$id);
+        $allDay = $request->get('allDay');
+        $this->get('fados.calendar.service')->changeDate($newStartData,$newEndData,$id,$allDay);
 
         return new Response($id, 201);
 
@@ -193,10 +188,11 @@ class CalendarController extends Controller
         $color = $request->get('color', '#69a4e0');
         $affected = $request->get('affected');
         $type = $request->get('type');
+        $desc = $request->get('desc');
         $notify = $request->get('notify');
         $notify = ($notify === true || $notify === 'true') ? true : false;
 
-        $id = $this->get('fados.calendar.service')->storeData($title, $start, $end, $allDay, $color, $affected, $type, $notify);
+        $id = $this->get('fados.calendar.service')->storeData($title, $start, $end, $allDay, $color, $affected, $type, $desc, $notify);
 
         return new Response(json_encode(array('id' => $id)));
 

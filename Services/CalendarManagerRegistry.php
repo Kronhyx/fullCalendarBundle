@@ -8,14 +8,14 @@
  */
 namespace fadosProduccions\fullCalendarBundle\Services;
 
-use CoreBundle\Entity\Afectacion;
-use CoreBundle\Entity\Empresa;
+use AppBundle\Entity\Afectacion;
+use AppBundle\Entity\Empresa;
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Symfony\Component\DependencyInjection\ContainerInterface as Container;
 use Doctrine\ORM\EntityManager;
 use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\Security\Core\User\User;
-use CoreBundle\Entity\Afectado;
+use AppBundle\Service\SoporteService;
 
 class CalendarManagerRegistry
 {
@@ -41,9 +41,11 @@ class CalendarManagerRegistry
         $qb = $this->manager->createQuery('
             SELECT c FROM '.$this->recipient.' c            
             WHERE c.startDatetime BETWEEN :firstDate AND :lastDate
+            AND c.activo = :active
         ')
         ->setParameter('firstDate', $dataFrom)
-        ->setParameter('lastDate', $dataTo);
+        ->setParameter('lastDate', $dataTo)
+        ->setParameter('active', true);
 
         return $qb->getResult();
     }
@@ -52,26 +54,29 @@ class CalendarManagerRegistry
         return $this->manager->getRepository($this->recipient);
     }
 
-    public function changeDate($newStartData,$newEndData,$id) {
+    public function changeDate($newStartData,$newEndData,$id,$allDay) {
+        $allDay = ($allDay === true || $allDay === 'true') ? true: false;
         /**
          * @var Afectacion $entity
          */
         $entity = $this->manager->getRepository($this->recipient)->find($id);
         $entity->setStartDatetime(new \DateTime($newStartData));
         $entity->setEndDatetime(new \DateTime($newEndData));
+        if($entity->getAllDay() != $allDay)
+            $entity->setAllDay($allDay);
 		$auditoria = $entity->getAuditoria();
-        $creador = $auditoria->getUsuario()->getNombre();
+        $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
         foreach ($entity->getAfectados() as $afectado){
             //Envio el correo a todos los afectados
-            $this->container->get('soporte')->sendMail(
-                $afectado->getUsuario()->getCorreo(),
+            $this->container->get(SoporteService::class)->sendMail(
+                $afectado->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
                     'title' => 'SISTEMA DE SOPORTE::AFECTACIÓN',
                     'body'  =>
                         'Se ha reprogramado la Afectación: <br />
                         <b>Asunto:</b> '.$entity->getTitle().'<br />
-                        <b>Tipo:</b> '.$entity->getTipo()->getNombre().'<br />
+                        <b>Tipo:</b> '.$entity->getMotivo()->getNombre().'<br />
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                 ]
@@ -80,32 +85,32 @@ class CalendarManagerRegistry
         $this->save($entity);
    }
 
-    public function storeData($title, $start, $end, $allDay, $color, $affected, $type, $notify) {
+    public function storeData($title, $start, $end, $allDay, $color, $affected, $type, $desc, $notify) {
         $parts = preg_split('/:/', $this->recipient);
         $className = $parts[0].'\\Entity\\'.$parts[1];
         $ref = new \ReflectionClass($className);
+        /** @var Afectacion $entity */
         $entity = $ref->newInstance();
         $entity->setStartDatetime(new \DateTime($start));
         $entity->setAllDay($allDay);
         $entity->setBgColor($color);
         $entity->setEndDatetime(new \DateTime($end));
-        $entity->setMotivo($this->manager->getRepository('CoreBundle:Motivo')->find($type));
+        $entity->setMotivo($this->manager->getRepository('AppBundle:Motivo')->find($type));
         $entity->setTitle($title);
-
-        $this->save($entity);
+        $entity->setActivo(true);
+        $entity->setDescripcion($desc);
 
         $auditoria = $entity->getAuditoria();
-        $creador = $auditoria->getUsuario()->getNombre();
+        $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
 
         //Separo los ids pasados en un arreglo
         $ids = preg_split('/,/', $affected);
         //Voy creando una a una cada entrada a la tabla Afectado, según la cantidad de usuarios que se vean involucrados en la misma
         foreach ($ids as $id){
-            $afectado = new Afectado();
-            $afectado->setAfectacion($entity);
-            $usuario = $this->manager->getRepository('CoreBundle:Usuario')->find($id);
+            $usuario = $this->manager->getRepository('AppBundle:Usuario')->find($id);
+            $entity->addAfectado($usuario);
             //Envio el correo a todos los afectados
-            $this->container->get('soporte')->sendMail(
+            $this->container->get(SoporteService::class)->sendMail(
                 $usuario->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
@@ -113,15 +118,13 @@ class CalendarManagerRegistry
                     'body'  =>
                         'Usted ha sido incluido en la Afectación: <br />
                         <b>Asunto:</b> '.$entity->getTitle().'<br />
-                        <b>Tipo:</b> '.$entity->getTipo()->getNombre().'<br />
+                        <b>Tipo:</b> '.$entity->getMotivo()->getNombre().'<br />
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                 ]
             );
-            $afectado->setUsuario($usuario);
-            $this->save($afectado);
         }
-
+        $this->save($entity);
         return $entity->getId();
     }
 
@@ -131,27 +134,29 @@ class CalendarManagerRegistry
          */
         $entity = $this->manager->getRepository($this->recipient)->find($id);
         $auditoria = $entity->getAuditoria();
-        $creador = $auditoria->getUsuario()->getNombre();
+        $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
         /**
          * @var Afectado $afectado
          */
         foreach ($entity->getAfectados() as $afectado){
             //Envio el correo a todos los afectados
-            $this->container->get('soporte')->sendMail(
-                $afectado->getUsuario()->getCorreo(),
+            $this->container->get(SoporteService::class)->sendMail(
+                $afectado->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
                     'title' => 'SISTEMA DE SOPORTE::AFECTACIÓN',
                     'body'  =>
                         'Se cancela la Afectación: <br />
                         <b>Asunto:</b> '.$entity->getTitle().'<br />
-                        <b>Tipo:</b> '.$entity->getTipo()->getNombre().'<br />
+                        <b>Tipo:</b> '.$entity->getMotivo()->getNombre().'<br />
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                 ]
             );
         }
+        $entity->setActivo(false);
         $this->save($entity);
+        //$this->remove($entity);
     }
 
     public function resizeEvent($newDate,$id) {
@@ -161,18 +166,18 @@ class CalendarManagerRegistry
         $entity = $this->manager->getRepository($this->recipient)->find($id);
         $entity->setEndDatetime(new \DateTime($newDate));
 		$auditoria = $entity->getAuditoria();
-        $creador = $auditoria->getUsuario()->getNombre();
+        $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
         foreach ($entity->getAfectados() as $afectado){
             //Envio el correo a todos los afectados
-            $this->container->get('soporte')->sendMail(
-                $afectado->getUsuario()->getCorreo(),
+            $this->container->get(SoporteService::class)->sendMail(
+                $afectado->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
                     'title' => 'SISTEMA DE SOPORTE::AFECTACIÓN',
                     'body'  =>
                         'Se h cambiado la duración de la Afectación: <br />
                         <b>Asunto:</b> '.$entity->getTitle().'<br />
-                        <b>Tipo:</b> '.$entity->getTipo()->getNombre().'<br />
+                        <b>Tipo:</b> '.$entity->getMotivo()->getNombre().'<br />
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                 ]
@@ -192,13 +197,6 @@ class CalendarManagerRegistry
             $result[] = $event;
         }
         //Añadiendo la zona donde no deben agregarse eventos
-        /*{
-            start: '2016-01-24',
-            end: '2016-01-28',
-            overlap: false,
-            rendering: 'background',
-            color: '#ff9f89'
-        }*/
         $no_add = [
             'start'     => '1900-01-01',
             'end'       => (new \DateTime('today'))->format('Y-m-d'),
@@ -211,6 +209,11 @@ class CalendarManagerRegistry
 
     public function save($entity) {
         $this->manager->persist($entity);
+        $this->manager->flush();
+    }
+
+    public function  remove($entity){
+        $this->manager->remove($entity);
         $this->manager->flush();
     }
 }
