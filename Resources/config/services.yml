@@ -1,9 +1,9 @@
 services:
   fados.calendar.service:
-       class:  fadosProduccions\fullCalendarBundle\Services\CalendarManagerRegistry
+       class:  Kronhyx\fullCalendarBundle\Services\CalendarManagerRegistry
        arguments: ["@doctrine","@service_container", "@event_dispatcher"]
   app.fados.twig_extension:
-       class:  fadosProduccions\fullCalendarBundle\Twig\fullCalendarExtension
+       class:  Kronhyx\fullCalendarBundle\Twig\fullCalendarExtension
        public: false
        tags:
          - { name: twig.extension }

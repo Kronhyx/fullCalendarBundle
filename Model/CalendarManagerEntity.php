@@ -6,7 +6,7 @@
  * Time: 19:25
  */
 
-namespace fadosProduccions\fullCalendarBundle\Model;
+namespace Kronhyx\fullCalendarBundle\Model;
 
 /*
 * Creem una classe que el que volem es que es pugui instancia com a servei

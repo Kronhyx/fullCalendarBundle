@@ -1,6 +1,6 @@
 <?php
 
-namespace fadosProduccions\fullCalendarBundle\Twig;
+namespace Kronhyx\fullCalendarBundle\Twig;
 
 
 class fullCalendarExtension extends \Twig_Extension

@@ -1,12 +1,12 @@
 <?php
 
-namespace fadosProduccions\fullCalendarBundle\Controller;
+namespace Kronhyx\fullCalendarBundle\Controller;
 
 use AppBundle\Entity\Afectacion;
 use AppBundle\Entity\Usuario;
 use AppBundle\Service\MailerService;
 use AppBundle\Service\SoporteService;
-use fadosProduccions\fullCalendarBundle\Services\CalendarManagerRegistry;
+use Kronhyx\fullCalendarBundle\Services\CalendarManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\HttpFoundation\Request;

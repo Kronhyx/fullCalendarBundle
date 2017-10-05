@@ -6,7 +6,7 @@
  * Time: 17:32
  */
 
-namespace fadosProduccions\fullCalendarBundle\Model;
+namespace Kronhyx\fullCalendarBundle\Model;
 
 
 class CalendarEvents

@@ -1,7 +1,7 @@
 <?php
 
 
-namespace fadosProduccions\fullCalendarBundle\DependencyInjection;
+namespace Kronhyx\fullCalendarBundle\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;

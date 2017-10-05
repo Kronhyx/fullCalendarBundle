@@ -6,9 +6,9 @@
  * Time: 17:38
  */
 
-namespace fadosProduccions\fullCalendarBundle\Entity;
+namespace Kronhyx\fullCalendarBundle\Entity;
 
-use fadosProduccions\fullCalendarBundle\Model\CalendarEvents as baseCalendarEvent;
+use Kronhyx\fullCalendarBundle\Model\CalendarEvents as baseCalendarEvent;
 
 abstract class Event extends baseCalendarEvent
 {

@@ -14,7 +14,7 @@ php composer.phar require fados-produccions/full-calendar-bundle dev-master
 register he bundle inthe appKernel.php
 
 ```php
-   new fadosProduccions\fullCalendarBundle\fullCalendarBundle(),
+   new Kronhyx\fullCalendarBundle\fullCalendarBundle(),
 ```
 
 This bundle has a dependency on the FOSJsRouting bundle to expose the calendar AJAX event loader route. Please ensure that the [FOSJsRouting](https://github.com/FriendsOfSymfony/FOSJsRoutingBundle) bundle is installed and configured before continuing.
@@ -61,7 +61,7 @@ Create an entity:
 namespace AppBundle\Entity;
  
 use Doctrine\ORM\Mapping as ORM;
-use fadosProduccions\fullCalendarBundle\Entity\Event as BaseEvent;
+use Kronhyx\fullCalendarBundle\Entity\Event as BaseEvent;
  
 /**
  * @ORM\Entity
@@ -225,7 +225,7 @@ Inside the DependencyInjection folder we create two files, fullCalendarExtension
 ```php
 <?php
 
-namespace fadosProduccions\fullCalendarBundle\DependencyInjection;
+namespace Kronhyx\fullCalendarBundle\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
@@ -280,7 +280,7 @@ Finally we have to create fullcalendarbundle.php used for load the bundle:
 ```php
 <?php
 
-namespace fadosProduccions\fullCalendarBundle;
+namespace Kronhyx\fullCalendarBundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
@@ -337,10 +337,10 @@ Now we have to create a couple of services, fados.calendar.service manage the en
 ```
 services:
   fados.calendar.service:
-       class:  fadosProduccions\fullCalendarBundle\Services\CalendarManagerRegistry
+       class:  Kronhyx\fullCalendarBundle\Services\CalendarManagerRegistry
        arguments: ["@doctrine","@service_container"]
   app.fados.twig_extension:
-       class:  fadosProduccions\fullCalendarBundle\Twig\fullCalendarExtension
+       class:  Kronhyx\fullCalendarBundle\Twig\fullCalendarExtension
        public: false
        tags:
          - { name: twig.extension }
@@ -355,7 +355,7 @@ Create the folder Twig, in this folder we will crate the extesion
 ```php
 <?php
 
-namespace fadosProduccions\fullCalendarBundle\Twig;
+namespace Kronhyx\fullCalendarBundle\Twig;
 
 class fullCalendarExtension extends \Twig_Extension
 {
@@ -398,9 +398,9 @@ He have to create the amin entity
 ```php
 <?php
 
-namespace fadosProduccions\fullCalendarBundle\Entity;
+namespace Kronhyx\fullCalendarBundle\Entity;
 
-use fadosProduccions\fullCalendarBundle\Model\CalendarEvents as baseCalendarEvent;
+use Kronhyx\fullCalendarBundle\Model\CalendarEvents as baseCalendarEvent;
 
 abstract class Event extends baseCalendarEvent
 {
@@ -416,7 +416,7 @@ that extends from CalendarEvents, this model contains the basic properties for t
 
 ```php
 
-namespace fadosProduccions\fullCalendarBundle\Model;
+namespace Kronhyx\fullCalendarBundle\Model;
 
 class CalendarEvents
 {
@@ -564,7 +564,7 @@ class CalendarEvents
 ```
 
 finally we have to map it to the orm, the next file contains the database mapping for the CalendarEvent.
-This file is in the fadosProduccions\fullCalendarBundle\Resources\Config\doctrine\Event.orm.xml
+This file is in the Kronhyx\fullCalendarBundle\Resources\Config\doctrine\Event.orm.xml
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -574,7 +574,7 @@ This file is in the fadosProduccions\fullCalendarBundle\Resources\Config\doctrin
         xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
         http://doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
-    <mapped-superclass name="fadosProduccions\fullCalendarBundle\Entity\Event">
+    <mapped-superclass name="Kronhyx\fullCalendarBundle\Entity\Event">
 
         <field name="title" column="title" type="string" length="255" nullable="true"/>
         <field name="url" column="url" type="string" length="255" nullable="true"/>
@@ -587,7 +587,7 @@ This file is in the fadosProduccions\fullCalendarBundle\Resources\Config\doctrin
 </doctrine-mapping>
 ```
 
-This allow us to create and entity that extends to baseEvent with fields mapped to the database, this mapping is very important <mapped-superclass name="fadosProduccions\fullCalendarBundle\Entity\Event">, bind the entity with the database mapping.
+This allow us to create and entity that extends to baseEvent with fields mapped to the database, this mapping is very important <mapped-superclass name="Kronhyx\fullCalendarBundle\Entity\Event">, bind the entity with the database mapping.
 
 Before execute this:
 
@@ -651,14 +651,14 @@ The routes called in this file uses the CalendarController, place where we defin
 
 Controller
 ----------
-The main controller is fadosProduccions\fullCalendarBundle\Controller\CalendarController
+The main controller is Kronhyx\fullCalendarBundle\Controller\CalendarController
 
 This controller uses the service fados.calendar.service to manage the entity.
 
 ```
 services:
   fados.calendar.service:
-       class:  fadosProduccions\fullCalendarBundle\Services\CalendarManagerRegistry
+       class:  Kronhyx\fullCalendarBundle\Services\CalendarManagerRegistry
        arguments: ["@doctrine","@service_container"]
 ```
 

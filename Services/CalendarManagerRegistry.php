@@ -6,13 +6,13 @@
  * Date: 23/2/2016
  * Time: 8:52
  */
-namespace fadosProduccions\fullCalendarBundle\Services;
+namespace Kronhyx\fullCalendarBundle\Services;
 
 use AppBundle\Entity\Afectacion;
 use AppBundle\Entity\Empresa;
 use AppBundle\Service\MailerService;
 use Doctrine\Common\Persistence\ManagerRegistry;
-use fadosProduccions\fullCalendarBundle\Controller\CalendarController;
+use Kronhyx\fullCalendarBundle\Controller\CalendarController;
 use Symfony\Component\DependencyInjection\ContainerInterface as Container;
 use AppBundle\Service\SoporteService;
 use Symfony\Component\EventDispatcher\GenericEvent;

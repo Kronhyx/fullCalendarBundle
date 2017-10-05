@@ -6,7 +6,7 @@
  * Time: 8:58
  */
 
-namespace fadosProduccions\fullCalendarBundle;
+namespace Kronhyx\fullCalendarBundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
