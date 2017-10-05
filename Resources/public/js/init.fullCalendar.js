@@ -52,8 +52,8 @@ $(function () {
         eventReceive: function(event){
             if(!event.allDay && event.type == vacaciones_id){
                 //var toast = $('.toast-error:visible');
-                toastr.error('', 'Esta afectación tiene que ser un evento para todo el día.');
-
+                //toastr.error('', 'Esta afectación tiene que ser un evento para todo el día.');
+                alert('Esta afectación tiene que ser un evento para todo el día.');
                 var event_by_hour = $('.fc-content:contains("'+event.start.format('H:mm')+'")');
                 event_by_hour.each(function(){
                     if($(this).find('.fc-title:contains("'+event.title+'")').length == 1){
@@ -95,7 +95,8 @@ $(function () {
             //alert(event.backgroundColor);
             if(!event.allDay && event.backgroundColor === vacaciones_color){
                 //var toast = $('.toast-error:visible');
-                toastr.error('', 'Esta afectación tiene que ser un evento para todo el día.');
+                //toastr.error('', 'Esta afectación tiene que ser un evento para todo el día.');
+                alert('Esta afectación tiene que ser un evento para todo el día.');
                 revertFunc(event);
                 return;
             }
@@ -172,7 +173,8 @@ $(function () {
                         calEvent.color = '#000';
                     },
                     error: function () {
-                        toastr.error('', 'Ha ocurrido un error');
+                        //toastr.error('', 'Ha ocurrido un error');
+                        alert('Ha ocurrido un error');
                         $('.popover').popover('hide');
                     }
                 });
@@ -189,7 +191,8 @@ $(function () {
                         type: 'POST',
                         dataType: 'json',
                         success: function (response) {
-                            toastr.success('', 'Se elimino la Afectación correctamente.');
+                            //toastr.success('', 'Se elimino la Afectación correctamente.');
+                            alert('Se elimino la Afectación correctamente.');
                             $('#calendar-place').fullCalendar('removeEvents', calEvent._id);
                             element.remove();
                         },

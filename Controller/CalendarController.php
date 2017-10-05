@@ -3,21 +3,24 @@
 namespace fadosProduccions\fullCalendarBundle\Controller;
 
 use AppBundle\Entity\Afectacion;
-use AppBundle\Entity\Afectado;
 use AppBundle\Entity\Usuario;
+use AppBundle\Service\MailerService;
 use AppBundle\Service\SoporteService;
+use fadosProduccions\fullCalendarBundle\Services\CalendarManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Doctrine\Common\Persistence\ManagerRegistry;
-use fadosProduccions\fullCalendarBundle\Model\CalendarManagerEntity as baseCalendarManager;
 
 class CalendarController extends Controller
 {
+    /** @var  CalendarManagerRegistry $manager */
     private $manager;
 
-    function loadAction(Request $request) {
+    //Dato mostrado en el titulo de los correos enviados por el sistema
+    const DATO_CORREO = 'SISTEMA DE SOPORTE::AFECTACIÓN';
 
+    function loadAction(Request $request) {
         //Get start date
         $createdAt = $request->get('start');
         $endAt = $request->get('end');
@@ -53,8 +56,9 @@ class CalendarController extends Controller
     }
 
     public function updateAction(Request $request){
+        $this->manager = $this->container->get('fados.calendar.service');
         $em = $this->getDoctrine()->getManager();
-        $repo = $this->get('fados.calendar.service')->getRepo();
+        $repo = $this->manager->getRepo();
         /**
          * @var Afectacion $event
          */
@@ -67,7 +71,7 @@ class CalendarController extends Controller
         $desc = $request->get('desc');
         $type = $request->get('type');
         $affected = $request->get('affected');
-        $motivo = $this->getDoctrine()->getRepository('AppBundle:Motivo')->find($type);
+        $motivo = $this->getDoctrine()->getRepository('AppBundle:Nomenclador')->find($type);
         //Va indicando los cambios que se han ido haciendo en esta actualización para poder enviarlo por correo
         $cambios = '';
 
@@ -78,7 +82,7 @@ class CalendarController extends Controller
         if($event->getMotivo()->getId() != $type){
             $cambios .= '<br />El <b>Tipo:</b> <i>'.$event->getMotivo()->getNombre().'<i> por '.$motivo->getNombre();
             $event->setMotivo($motivo);
-            $event->setBgColor($motivo->getColor());
+            $event->setBgColor($motivo->getJson('color'));
         }
         if($event->getDescripcion() != $desc/* && $event->getDescripcion() !== null*/){
             //Si no se ha asignado una descripcion
@@ -102,13 +106,22 @@ class CalendarController extends Controller
         $a_eliminar = array_diff($todos, $ids);
         $a_ingresar = array_diff($todos, $bd_afectados);
         $se_mantienen = array_intersect($ids, $bd_afectados);
+        //Instancia del objeto destinado a enviar correos
+        $mailer = $this->get(MailerService::class);
         //Recorro el arreglo de los afectados que luego de la modificación aun se mantienen
         foreach($se_mantienen as $id_mantiene){
             /**
              * @var Usuario $se_mantiene
              */
             $se_mantiene = $this->getDoctrine()->getRepository('AppBundle:Usuario')->find($id_mantiene);
-            $this->get(SoporteService::class)->sendMail(
+            $mailer->setNombre(self::DATO_CORREO)
+                ->setAsunto(self::DATO_CORREO)
+                ->setDestinatario($se_mantiene->getCorreo())
+                ->setCuerpo('Se ha modificado la Afectación: <br />
+                        <b>Asunto:</b> '.$event->getTitle().'<br />
+                        <b>Cambios:</b><br />'.$cambios.'
+                        <b>Por '.$creador.'</b>')->persist();
+            /*$this->get(SoporteService::class)->sendMail(
                 $se_mantiene->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
@@ -119,14 +132,24 @@ class CalendarController extends Controller
                         <b>Cambios:</b><br />'.$cambios.'
                         <b>Por '.$creador.'</b>'
                 ]
-            );
+            );*/
         }
+        $mailer->send();
         //Recorro el listado para ir eliminando los afectados que ya no stan
-        foreach ($afectados as $afectado){
+        foreach ($afectados as $afectado)
+        {
             //Si existe el usuario del afectado y esta en la lista de los que se desea eliminar
             if(isset($afectado) && array_search($afectado->getId(), $a_eliminar) !== false)
             {
-                $this->get(SoporteService::class)->sendMail(
+                $mailer->setNombre(self::DATO_CORREO)
+                    ->setAsunto(self::DATO_CORREO)
+                    ->setDestinatario($afectado->getCorreo())
+                    ->setCuerpo('Se ha cancelado la Afectación: <br />
+                        <b>Asunto:</b> '.$event->getTitle().'<br />
+                        <b>Tipo:</b> '.$event->getMotivo()->getNombre().'<br />
+                        <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
+                        <b>Por '.$creador.'</b>')->persist();
+                /*$this->get(SoporteService::class)->sendMail(
                     $afectado->getCorreo(),
                     'SISTEMA DE SOPORTE::AFECTACIÓN',
                     [
@@ -138,17 +161,26 @@ class CalendarController extends Controller
                         <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                     ]
-                );
+                );*/
                 $event->removeAfectado($afectado);
             }
         }
+        $mailer->send();
         foreach ($a_ingresar as $id){
             /**
              * @var Usuario $usuario
              */
             $usuario = $this->getDoctrine()->getRepository('AppBundle:Usuario')->find($id);
             $event->addAfectado($usuario);
-            $this->get(SoporteService::class)->sendMail(
+            $mailer->setNombre(self::DATO_CORREO)
+                ->setAsunto(self::DATO_CORREO)
+                ->setDestinatario($usuario->getCorreo())
+                ->setCuerpo('Usted ha sido incluido en la Afectación: <br />
+                        <b>Asunto:</b> '.$event->getTitle().'<br />
+                        <b>Tipo:</b> '.$event->getMotivo()->getNombre().'<br />
+                        <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
+                        <b>Por '.$creador.'</b>')->persist();
+            /*$this->get(SoporteService::class)->sendMail(
                 $usuario->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
@@ -160,8 +192,12 @@ class CalendarController extends Controller
                         <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                 ]
-            );
+            );*/
         }
+        $mailer->send();
+        //Generic Event donde guardo la entidad pasada al servicio para crear la auditoria
+        $gEvent = new GenericEvent($event);
+        $this->manager->getDispatcher()->dispatch('app.auditoria.instanciate', $gEvent);
         $em->persist($event);
         $em->flush();
         return new Response(json_encode(array('success' => true)));
@@ -191,6 +227,18 @@ class CalendarController extends Controller
         $desc = $request->get('desc');
         $notify = $request->get('notify');
         $notify = ($notify === true || $notify === 'true') ? true : false;
+        //Busco las afectaciones (que estan en la sesión) que coincidan con la que voy a almacenar y la elimino de la sesión
+        $session = $this->get('session');
+        $afectaciones = $session->get('affectations', array());
+        foreach($afectaciones as $afectacion){
+            //Busco las que coinciden en el titulo y en el tipo
+            if($afectacion['title'] == $title && $afectacion['type'] == $type)
+                $to_remove = $afectacion['id'];
+        }
+        if(isset($to_remove)){
+            unset($afectaciones[$to_remove]);
+            $session->set('affectations', $afectaciones);
+        }
 
         $id = $this->get('fados.calendar.service')->storeData($title, $start, $end, $allDay, $color, $affected, $type, $desc, $notify);
 

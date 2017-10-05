@@ -10,12 +10,13 @@ namespace fadosProduccions\fullCalendarBundle\Services;
 
 use AppBundle\Entity\Afectacion;
 use AppBundle\Entity\Empresa;
+use AppBundle\Service\MailerService;
 use Doctrine\Common\Persistence\ManagerRegistry;
+use fadosProduccions\fullCalendarBundle\Controller\CalendarController;
 use Symfony\Component\DependencyInjection\ContainerInterface as Container;
-use Doctrine\ORM\EntityManager;
-use Symfony\Component\EventDispatcher\Event;
-use Symfony\Component\Security\Core\User\User;
 use AppBundle\Service\SoporteService;
+use Symfony\Component\EventDispatcher\GenericEvent;
+use Symfony\Component\HttpKernel\Debug\TraceableEventDispatcher;
 
 class CalendarManagerRegistry
 {
@@ -23,14 +24,15 @@ class CalendarManagerRegistry
     protected $container;
     protected $recipient;
     protected $manager;
+    protected $dispatcher;
 
-    public function __construct(ManagerRegistry $managerRegistry, Container $container)
+    public function __construct(ManagerRegistry $managerRegistry, Container $container, TraceableEventDispatcher $dispatcher)
     {
         $this->container = $container;
         $this->recipient = $this->container->getParameter( 'class_manager' );
         $this->managerRegistry = $managerRegistry;
         $this->manager = $this->managerRegistry->getManagerForClass($this->recipient);
-
+        $this->dispatcher = $dispatcher;
     }
 
     public function getManager() {
@@ -50,6 +52,14 @@ class CalendarManagerRegistry
         return $qb->getResult();
     }
 
+
+    /** Devuelve el disparador de evento del servicio
+     * @return TraceableEventDispatcher
+     */
+    public function getDispatcher(){
+        return $this->dispatcher;
+    }
+
     public function getRepo(){
         return $this->manager->getRepository($this->recipient);
     }
@@ -66,9 +76,19 @@ class CalendarManagerRegistry
             $entity->setAllDay($allDay);
 		$auditoria = $entity->getAuditoria();
         $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
+        //Instancia del objeto encargado de enviar correos.
+        $mailer = $this->container->get(MailerService::class);
         foreach ($entity->getAfectados() as $afectado){
+            $mailer->setNombre(CalendarController::DATO_CORREO)
+                ->setAsunto(CalendarController::DATO_CORREO)
+                ->setDestinatario($afectado->getCorreo())
+                ->setCuerpo('Se ha reprogramado la Afectación: <br />
+                        <b>Asunto:</b> '.$entity->getTitle().'<br />
+                        <b>Tipo:</b> '.$entity->getMotivo()->getNombre().'<br />
+                        <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
+                        <b>Por '.$creador.'</b>')->persist();
             //Envio el correo a todos los afectados
-            $this->container->get(SoporteService::class)->sendMail(
+            /*$this->container->get(SoporteService::class)->sendMail(
                 $afectado->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
@@ -80,11 +100,26 @@ class CalendarManagerRegistry
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                 ]
-            );
+            );*/
         }
+        $mailer->send();
+        $gEvent = new GenericEvent($entity);
+        $this->dispatcher->dispatch('app.auditoria.instanciate', $gEvent);
         $this->save($entity);
    }
 
+    /**
+     * @param $title
+     * @param $start
+     * @param $end
+     * @param $allDay
+     * @param $color
+     * @param $affected
+     * @param $type
+     * @param $desc
+     * @param $notify
+     * @return Afectacion
+     */
     public function storeData($title, $start, $end, $allDay, $color, $affected, $type, $desc, $notify) {
         $parts = preg_split('/:/', $this->recipient);
         $className = $parts[0].'\\Entity\\'.$parts[1];
@@ -95,22 +130,33 @@ class CalendarManagerRegistry
         $entity->setAllDay($allDay);
         $entity->setBgColor($color);
         $entity->setEndDatetime(new \DateTime($end));
-        $entity->setMotivo($this->manager->getRepository('AppBundle:Motivo')->find($type));
+        $entity->setMotivo($this->manager->getRepository('AppBundle:Nomenclador')->find($type));
         $entity->setTitle($title);
         $entity->setActivo(true);
         $entity->setDescripcion($desc);
+
 
         $auditoria = $entity->getAuditoria();
         $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
 
         //Separo los ids pasados en un arreglo
         $ids = preg_split('/,/', $affected);
+        //Instancia del objeto que se dedicara a enviar los correos electrónicos
+        $mailer = $this->container->get(MailerService::class);
         //Voy creando una a una cada entrada a la tabla Afectado, según la cantidad de usuarios que se vean involucrados en la misma
         foreach ($ids as $id){
             $usuario = $this->manager->getRepository('AppBundle:Usuario')->find($id);
             $entity->addAfectado($usuario);
+            $mailer->setNombre(CalendarController::DATO_CORREO)
+                ->setAsunto(CalendarController::DATO_CORREO)
+                ->setDestinatario($usuario->getCorreo())
+                ->setCuerpo('Usted ha sido incluido en la Afectación: <br />
+                        <b>Asunto:</b> '.$entity->getTitle().'<br />
+                        <b>Tipo:</b> '.$entity->getMotivo()->getNombre().'<br />
+                        <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
+                        <b>Por '.$creador.'</b>')->persist();
             //Envio el correo a todos los afectados
-            $this->container->get(SoporteService::class)->sendMail(
+            /*$this->container->get(SoporteService::class)->sendMail(
                 $usuario->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
@@ -122,8 +168,11 @@ class CalendarManagerRegistry
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                 ]
-            );
+            );*/
         }
+        $mailer->send();
+        $gEvent = new GenericEvent($entity);
+        $this->dispatcher->dispatch('app.auditoria.instanciate', $gEvent);
         $this->save($entity);
         return $entity->getId();
     }
@@ -139,8 +188,17 @@ class CalendarManagerRegistry
          * @var Afectado $afectado
          */
         foreach ($entity->getAfectados() as $afectado){
+            $this->container->get(MailerService::class)
+                ->setAsunto(CalendarController::DATO_CORREO)
+                ->setNombre(CalendarController::DATO_CORREO)
+                ->setDestinatario($afectado->getCorreo())
+                ->setCuerpo('Se cancela la Afectación: <br />
+                        <b>Asunto:</b> '.$entity->getTitle().'<br />
+                        <b>Tipo:</b> '.$entity->getMotivo()->getNombre().'<br />
+                        <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
+                        <b>Por '.$creador.'</b>')->persist()->send();
             //Envio el correo a todos los afectados
-            $this->container->get(SoporteService::class)->sendMail(
+            /*$this->container->get(SoporteService::class)->sendMail(
                 $afectado->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
@@ -152,9 +210,12 @@ class CalendarManagerRegistry
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                 ]
-            );
+            );*/
         }
         $entity->setActivo(false);
+
+        $gEvent = new GenericEvent($entity, ['remove' => true]);
+        $this->dispatcher->dispatch('app.auditoria.instanciate', $gEvent);
         $this->save($entity);
         //$this->remove($entity);
     }
@@ -167,9 +228,19 @@ class CalendarManagerRegistry
         $entity->setEndDatetime(new \DateTime($newDate));
 		$auditoria = $entity->getAuditoria();
         $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
+        //Instancia del objeto para enviar correos
+        $mailer = $this->container->get(MailerService::class);
         foreach ($entity->getAfectados() as $afectado){
+            $mailer->setNombre(CalendarController::DATO_CORREO)
+                ->setAsunto(CalendarController::DATO_CORREO)
+                ->setDestinatario($afectado->getCorreo())
+                ->setCuerpo('Se h cambiado la duración de la Afectación: <br />
+                        <b>Asunto:</b> '.$entity->getTitle().'<br />
+                        <b>Tipo:</b> '.$entity->getMotivo()->getNombre().'<br />
+                        <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
+                        <b>Por '.$creador.'</b>')->persist();
             //Envio el correo a todos los afectados
-            $this->container->get(SoporteService::class)->sendMail(
+            /*$this->container->get(SoporteService::class)->sendMail(
                 $afectado->getCorreo(),
                 'SISTEMA DE SOPORTE::AFECTACIÓN',
                 [
@@ -181,8 +252,11 @@ class CalendarManagerRegistry
                         <b>Horario:</b>'.($entity->getAllDay()?" Todo el día":" Del ".($entity->getStartDatetime()->format('d-m-Y H:i').' al '.$entity->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>'
                 ]
-            );
+            );*/
         }
+        $mailer->send();
+        $gEvent = new GenericEvent($entity);
+        $this->dispatcher->dispatch('app.auditoria.instanciate', $gEvent);
         $this->save($entity);
    }
 
