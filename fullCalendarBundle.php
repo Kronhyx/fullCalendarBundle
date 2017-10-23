@@ -8,10 +8,10 @@
 
 namespace Kronhyx\fullCalendarBundle;
 
-use Symfony\Component\HttpKernel\Bundle\Bundle;
+use Kronhyx\BaseBundle\KronhyxBaseBundle;
 
 //Ens permetrà carregar el bundle per ser utilitzat
-class fullCalendarBundle extends Bundle
+class fullCalendarBundle extends KronhyxBaseBundle
 {
 
 }
