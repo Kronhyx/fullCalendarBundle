@@ -75,7 +75,7 @@ class CalendarManagerRegistry
         if($entity->getAllDay() != $allDay)
             $entity->setAllDay($allDay);
 		$auditoria = $entity->getAuditoria();
-        $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
+        $creador = /*(isset($auditoria))?$auditoria->getUsuario()->getNombre():*/"";
         //Instancia del objeto encargado de enviar correos.
         $mailer = $this->container->get(MailerService::class);
         foreach ($entity->getAfectados() as $afectado){
@@ -137,7 +137,7 @@ class CalendarManagerRegistry
 
 
         $auditoria = $entity->getAuditoria();
-        $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
+        $creador = /*(isset($auditoria))?$auditoria->getUsuario()->getNombre():*/"";
 
         //Separo los ids pasados en un arreglo
         $ids = preg_split('/,/', $affected);
@@ -183,7 +183,7 @@ class CalendarManagerRegistry
          */
         $entity = $this->manager->getRepository($this->recipient)->find($id);
         $auditoria = $entity->getAuditoria();
-        $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
+        $creador = /*(isset($auditoria))?$auditoria->getUsuario()->getNombre():*/"";
         /**
          * @var Afectado $afectado
          */
@@ -227,7 +227,7 @@ class CalendarManagerRegistry
         $entity = $this->manager->getRepository($this->recipient)->find($id);
         $entity->setEndDatetime(new \DateTime($newDate));
 		$auditoria = $entity->getAuditoria();
-        $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
+        $creador = /*(isset($auditoria))?$auditoria->getUsuario()->getNombre():*/"";
         //Instancia del objeto para enviar correos
         $mailer = $this->container->get(MailerService::class);
         foreach ($entity->getAfectados() as $afectado){

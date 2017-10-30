@@ -15,14 +15,15 @@ $(function () {
             $('.fc-event').popover({
                 placement: 'bottom',
                 content: '<div class="btn-group">' +
-                '<button type="button" class="btn btn-xs red-mint">Eliminar</button>' +
-                '<button type="button" class="btn btn-xs btn-default">Editar</button>' +
+                '<button type="button" class="btn btn-xs red-mint normal">Eliminar</button>' +
+                '<button type="button" class="btn btn-xs btn-default normal">Editar</button>' +
+                '<button type="button" class="btn btn-xs btn-default different" style="display: none;">Ver</button>' +
                 '</div>',
                 html: true,
                 container: 'body'
             });
-            $('.fc-event').on('show.bs.popover', function(){
-                $('.popover').popover('hide');
+            $('.fc-event').on('show.bs.popover', function () {
+                $('.popover:visible').popover('hide');
             });
         }, 200);
     };
@@ -38,7 +39,7 @@ $(function () {
         },
         events:
             {
-                url: Routing.generate('fullcalendar_loadevents', { month: moment().format('MM'), year: moment().format('YYYY') }),
+                url: Routing.generate('fullcalendar_loadevents', { month: moment().format('MM'), year: moment().format('YYYY'), userId: userId, full: full }),
                 color: 'blue',
                 textColor:'white',
                 success: function(){
@@ -46,14 +47,28 @@ $(function () {
                     //$('#crear_afectacion').removeClass('disabled');
                 },
                 error: function() {
-                    alert('Error receving events');
+                    //alert('Error receving events');
+                    toastr.error('','Error recibiendo los eventos');
                 }
             },
         eventReceive: function(event){
             if(!event.allDay && event.type == vacaciones_id){
-                //var toast = $('.toast-error:visible');
-                //toastr.error('', 'Esta afectación tiene que ser un evento para todo el día.');
-                alert('Esta afectación tiene que ser un evento para todo el día.');
+                var toast = $('.toast-error:visible');
+                toastr.error('','Esta afectación tiene que ser un evento para todo el día.');
+                //alert('Esta afectación tiene que ser un evento para todo el día.');
+                var event_by_hour = $('.fc-content:contains("'+event.start.format('H:mm')+'")');
+                event_by_hour.each(function(){
+                    if($(this).find('.fc-title:contains("'+event.title+'")').length == 1){
+                        $('#calendar-place').fullCalendar('removeEvents', event._id);
+                        $(this).parents('.fc-event').remove();
+                    }
+                });
+                return;
+            }
+            else
+            if(!event.allDay && new Date(event.start.format("YYYY-MM-DD HH:mm")) < new Date())
+            {
+                toastr.error('','Esta afectación no puede inciar antes de la hora actual.');
                 var event_by_hour = $('.fc-content:contains("'+event.start.format('H:mm')+'")');
                 event_by_hour.each(function(){
                     if($(this).find('.fc-title:contains("'+event.title+'")').length == 1){
@@ -73,7 +88,7 @@ $(function () {
                 type: 'POST',
                 dataType: 'json',
                 success: function(json){
-                    console.log('ok');
+                    toastr.success('','Se ha agregado la Afectación correctamente.');
                     //Actualizo el id del evento para poder modificarlo posteriormente
                     event.id = json.id;
                     $('#calendar-place').fullCalendar('updateEvent', event);
@@ -81,7 +96,8 @@ $(function () {
                     renderCloseBtn();
                 },
                 error: function(){
-                    alert('Error processing your request');
+                    //alert('Error processing your request');
+                    toastr.error('','Error procesando su solicitud.');
                 }
             });
         },
@@ -94,9 +110,15 @@ $(function () {
         eventDrop: function(event,delta,revertFunc) {
             //alert(event.backgroundColor);
             if(!event.allDay && event.backgroundColor === vacaciones_color){
-                //var toast = $('.toast-error:visible');
-                //toastr.error('', 'Esta afectación tiene que ser un evento para todo el día.');
-                alert('Esta afectación tiene que ser un evento para todo el día.');
+                var toast = $('.toast-error:visible');
+                toastr.error('', 'Esta afectación tiene que ser un evento para todo el día.');
+                //alert('Esta afectación tiene que ser un evento para todo el día.');
+                revertFunc(event);
+                return;
+            }
+            else
+            if(!event.allDay && new Date(event.start.format("YYYY-MM-DD HH:mm")) < new Date()){
+                toastr.error('','Esta afectación no puede inciar antes de la hora actual.');
                 revertFunc(event);
                 return;
             }
@@ -113,12 +135,13 @@ $(function () {
                 type: 'POST',
                 dataType: 'json',
                 success: function(response){
-                    console.log('ok');
+                    toastr.success('','Se ha cambiado la fecha de la Afectación correctamente.');
                     renderCloseBtn();
                 },
                 error: function(e){
                     revertFunc();
-                    alert('Error processing your request: '+e.responseText);
+                    //alert('Error processing your request: '+e.responseText);
+                    toastr.error('', 'Error procesando su solicitud.');
                 }
             });
 
@@ -132,7 +155,7 @@ $(function () {
                 type: 'POST',
                 dataType: 'json',
                 success: function(response){
-                    console.log('ok');
+                    toastr.success('','Se ha cambiado el rango de fecha de la Afectación correctamente.');
                     renderCloseBtn();
                 },
                 error: function(e){
@@ -149,9 +172,13 @@ $(function () {
             console.log('Event: ' + calEvent.title);
             console.log('Event: ' + calEvent.id);
             var hoy = moment().format('YYYY-MM-DD');
-            if(moment(hoy)>moment(calEvent.start.format('YYYY-MM-DD')))
+            if(moment(hoy)>moment(calEvent.start.format('YYYY-MM-DD')) && userId === 0)
             {
                 $('.popover:visible').popover('hide');
+            }
+            else
+            if(userId !== 0){
+                $('.popover').find('.normal').hide().end().find('.different').show();
             }
             //Asignacion del handler del boton de editar
             $('.popover').find('.btn-default').on('click', function() {
@@ -163,18 +190,27 @@ $(function () {
                     success: function (json) {
                         //Oculto el popover
                         $('.popover').popover('hide');
-                        $('#form_nombre').val(json.title);
-                        $('#form_tipo').val(json.type).trigger('change.select2');
-                        $('#form_descripcion').val(json.desc);
+                        $('#afectacion_nombre').val(json.title);
+                        $('#afectacion_tipo').val(json.type).trigger('change.select2');
+                        $('#afectacion_descripcion').val(json.desc);
                         $('#crearModal').attr('data-affected', json.affected);
                         $('#crearModal').attr('data-event', calEvent.id);
                         $('#crearModal').attr('data-allDay', calEvent.allDay);
                         $('#crearModal').modal('show');
+                        if(userId > 0){
+                            $('.ms-selectable, #afectacion_save').hide();
+                            $('#cancelar').html("Cerrar");
+                            $('.ms-selection').css({'float': 'left', 'width': '100%'});
+                            $('#afectacion_afectados').prop('disabled', true);
+                            $('.ms-list').unbind('click');
+                            $('#afectacion_tipo').prop('disabled', true);
+                            $('#afectacion_descripcion, #afectacion_nombre, #afectacion_notificar').prop('disabled', true);
+                        }
                         calEvent.color = '#000';
                     },
                     error: function () {
-                        //toastr.error('', 'Ha ocurrido un error');
-                        alert('Ha ocurrido un error');
+                        toastr.error('', 'Ha ocurrido un error');
+                        //alert('Ha ocurrido un error');
                         $('.popover').popover('hide');
                     }
                 });
@@ -191,13 +227,14 @@ $(function () {
                         type: 'POST',
                         dataType: 'json',
                         success: function (response) {
-                            //toastr.success('', 'Se elimino la Afectación correctamente.');
-                            alert('Se elimino la Afectación correctamente.');
+                            toastr.success('', 'Se eliminó la Afectación correctamente.');
+                            //alert('Se elimino la Afectación correctamente.');
                             $('#calendar-place').fullCalendar('removeEvents', calEvent._id);
                             element.remove();
                         },
                         error: function (e) {
-                            alert('Error processing your request: ' + e.responseText);
+                            //alert('Error processing your request: ' + e.responseText);
+                            toastr.error('', 'Error procesando su solicitud.');
                         }
                     });
                 }

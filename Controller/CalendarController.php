@@ -29,7 +29,17 @@ class CalendarController extends Controller
 
         //Get entityManager
         $manager = $this->get('fados.calendar.service');
-        $events = $manager->getEvents($dataFrom,$dataTo);
+
+        $userId = $request->get('userId', 0);
+        $full = $request->get('full', false);
+        $em = $this->get('doctrine.orm.entity_manager');
+        if($userId != 0){
+           $user = $em->find('AppBundle:Usuario', $userId);
+           $events = $em->getRepository('AppBundle:Afectacion')->getAfectacionesByUsuario($user, $full);
+        }
+        else{
+            $events = $manager->getEvents($dataFrom,$dataTo);
+        }
 
         $status = empty($events) ? Response::HTTP_NO_CONTENT : Response::HTTP_OK;
         $jsonContent = $manager->serialize($events);
@@ -65,7 +75,7 @@ class CalendarController extends Controller
         $event = $repo->find($request->get('id'));
 		
 		$auditoria = $event->getAuditoria();
-        $creador = (isset($auditoria))?$auditoria->getUsuario()->getNombre():"";
+        $creador = /*(isset($auditoria))?$auditoria->getUsuario()->getNombre():*/"";
 		
         $title = $request->get('title');
         $desc = $request->get('desc');
