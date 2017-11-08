@@ -169,9 +169,7 @@ class CalendarController extends Controller
                         <b>Por '.$creador.'</b>')->persist();
         }
         $mailer->send();
-        //Generic Event donde guardo la entidad pasada al servicio para crear la auditoria
-        $gEvent = new GenericEvent($event);
-        $this->manager->getDispatcher()->dispatch('app.auditoria.instanciate', $gEvent);
+
         $em->persist($event);
         $em->flush();
         return new Response(json_encode(array('success' => true)));
