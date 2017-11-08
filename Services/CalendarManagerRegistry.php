@@ -16,6 +16,7 @@ use Kronhyx\AuditoriaBundle\Entity\Auditoria;
 use Kronhyx\fullCalendarBundle\Controller\CalendarController;
 use Symfony\Component\DependencyInjection\ContainerInterface as Container;
 use AppBundle\Service\SoporteService;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\HttpKernel\Debug\TraceableEventDispatcher;
 
@@ -27,7 +28,7 @@ class CalendarManagerRegistry
     protected $manager;
     protected $dispatcher;
 
-    public function __construct(ManagerRegistry $managerRegistry, Container $container, TraceableEventDispatcher $dispatcher)
+    public function __construct(ManagerRegistry $managerRegistry, Container $container, EventDispatcherInterface $dispatcher)
     {
         $this->container = $container;
         $this->recipient = $this->container->getParameter( 'class_manager' );
