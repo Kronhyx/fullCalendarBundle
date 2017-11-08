@@ -6,6 +6,7 @@ use AppBundle\Entity\Afectacion;
 use AppBundle\Entity\Usuario;
 use AppBundle\Service\MailerService;
 use AppBundle\Service\SoporteService;
+use Kronhyx\AuditoriaBundle\Entity\Auditoria;
 use Kronhyx\fullCalendarBundle\Services\CalendarManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\EventDispatcher\GenericEvent;
@@ -73,9 +74,10 @@ class CalendarController extends Controller
          * @var Afectacion $event
          */
         $event = $repo->find($request->get('id'));
-		
+
+        /** @var Auditoria $auditoria */
 		$auditoria = $event->getAuditoria();
-        $creador = /*(isset($auditoria))?$auditoria->getUsuario()->getNombre():*/"";
+        $creador = (isset($auditoria))?$auditoria->getUser()->getNombre():"SISTEMA DE SOPORTE";
 		
         $title = $request->get('title');
         $desc = $request->get('desc');
@@ -131,18 +133,6 @@ class CalendarController extends Controller
                         <b>Asunto:</b> '.$event->getTitle().'<br />
                         <b>Cambios:</b><br />'.$cambios.'
                         <b>Por '.$creador.'</b>')->persist();
-            /*$this->get(SoporteService::class)->sendMail(
-                $se_mantiene->getCorreo(),
-                'SISTEMA DE SOPORTE::AFECTACIÓN',
-                [
-                    'title' => 'SISTEMA DE SOPORTE::AFECTACIÓN',
-                    'body'  =>
-                        'Se ha modificado la Afectación: <br />
-                        <b>Asunto:</b> '.$event->getTitle().'<br />
-                        <b>Cambios:</b><br />'.$cambios.'
-                        <b>Por '.$creador.'</b>'
-                ]
-            );*/
         }
         $mailer->send();
         //Recorro el listado para ir eliminando los afectados que ya no stan
@@ -159,19 +149,6 @@ class CalendarController extends Controller
                         <b>Tipo:</b> '.$event->getMotivo()->getNombre().'<br />
                         <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>')->persist();
-                /*$this->get(SoporteService::class)->sendMail(
-                    $afectado->getCorreo(),
-                    'SISTEMA DE SOPORTE::AFECTACIÓN',
-                    [
-                        'title' => 'SISTEMA DE SOPORTE::AFECTACIÓN',
-                        'body'  =>
-                            'Se ha cancelado la Afectación: <br />
-                        <b>Asunto:</b> '.$event->getTitle().'<br />
-                        <b>Tipo:</b> '.$event->getMotivo()->getNombre().'<br />
-                        <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
-                        <b>Por '.$creador.'</b>'
-                    ]
-                );*/
                 $event->removeAfectado($afectado);
             }
         }
@@ -190,19 +167,6 @@ class CalendarController extends Controller
                         <b>Tipo:</b> '.$event->getMotivo()->getNombre().'<br />
                         <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
                         <b>Por '.$creador.'</b>')->persist();
-            /*$this->get(SoporteService::class)->sendMail(
-                $usuario->getCorreo(),
-                'SISTEMA DE SOPORTE::AFECTACIÓN',
-                [
-                    'title' => 'SISTEMA DE SOPORTE::AFECTACIÓN',
-                    'body'  =>
-                        'Usted ha sido incluido en la Afectación: <br />
-                        <b>Asunto:</b> '.$event->getTitle().'<br />
-                        <b>Tipo:</b> '.$event->getMotivo()->getNombre().'<br />
-                        <b>Horario:</b>'.($event->getAllDay()?" Todo el día":" Del ".($event->getStartDatetime()->format('d-m-Y H:i').' al '.$event->getEndDatetime()->format('d-m-Y H:i'))).'<br />
-                        <b>Por '.$creador.'</b>'
-                ]
-            );*/
         }
         $mailer->send();
         //Generic Event donde guardo la entidad pasada al servicio para crear la auditoria
@@ -222,7 +186,6 @@ class CalendarController extends Controller
         $this->get('fados.calendar.service')->changeDate($newStartData,$newEndData,$id,$allDay);
 
         return new Response($id, 201);
-
     }
 
     function storeAction(Request $request) {
