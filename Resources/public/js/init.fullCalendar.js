@@ -44,10 +44,8 @@ $(function () {
                 textColor:'white',
                 success: function(){
                     renderCloseBtn();
-                    //$('#crear_afectacion').removeClass('disabled');
                 },
                 error: function() {
-                    //alert('Error receving events');
                     toastr.error('','Error recibiendo los eventos');
                 }
             },
@@ -55,7 +53,6 @@ $(function () {
             if(!event.allDay && event.type == vacaciones_id){
                 var toast = $('.toast-error:visible');
                 toastr.error('','Esta afectación tiene que ser un evento para todo el día.');
-                //alert('Esta afectación tiene que ser un evento para todo el día.');
                 var event_by_hour = $('.fc-content:contains("'+event.start.format('H:mm')+'")');
                 event_by_hour.each(function(){
                     if($(this).find('.fc-title:contains("'+event.title+'")').length == 1){
@@ -105,10 +102,8 @@ $(function () {
             var month = view.calendar.getDate().format('MM');
             var year = view.calendar.getDate().format('YYYY');
             renderCloseBtn();
-            //$('#crear_afectacion').addClass('disabled');
         },
         eventDrop: function(event,delta,revertFunc) {
-            //alert(event.backgroundColor);
             if(!event.allDay && event.backgroundColor === vacaciones_color){
                 var toast = $('.toast-error:visible');
                 toastr.error('', 'Esta afectación tiene que ser un evento para todo el día.');
@@ -127,8 +122,6 @@ $(function () {
             var is_dayView = (($('.fc-agendaDay-button').hasClass('fc-state-active') || $('.fc-agendaWeek-button').hasClass('fc-state-active')) && !event.allDay);
             var start = (!is_dayView)?newStartData:event.start.format('YYYY-MM-DD HH:mm');
             var end = (!is_dayView)?newEndData:(event.end !== null)?event.end.format('YYYY-MM-DD HH:mm'):moment(start).add(2,'hours').format('YYYY-MM-DD HH:mm');
-            console.log('is dayView: '+is_dayView);
-            console.log(start+' '+end);
             $.ajax({
                 url: Routing.generate('fullcalendar_changedate'),
                 data: { id: event.id, newStartData: start,newEndData:end, allDay: event.allDay},
@@ -140,7 +133,6 @@ $(function () {
                 },
                 error: function(e){
                     revertFunc();
-                    //alert('Error processing your request: '+e.responseText);
                     toastr.error('', 'Error procesando su solicitud.');
                 }
             });
@@ -160,7 +152,7 @@ $(function () {
                 },
                 error: function(e){
                     revertFunc();
-                    alert('Error processing your request: '+e.responseText);
+                    toastr.error('Error processing your request: '+e.responseText);
                 }
             });
 
@@ -197,6 +189,36 @@ $(function () {
                         $('#crearModal').attr('data-event', calEvent.id);
                         $('#crearModal').attr('data-allDay', calEvent.allDay);
                         $('#crearModal').modal('show');
+                        var start = json.start.date;
+                        var start_date = start.split(' ')[0];
+                        var end = json.end.date;
+                        var end_date = end.split(' ')[0];
+                        var sdate = moment(start_date,"YYYY-MM-DD");
+                        var edate = moment(end_date,"YYYY-MM-DD");
+                        $('#afectacion_fecha_inicio').val(sdate.format("DD/MM/YYYY"));
+                        $('#afectacion_fecha_fin').val(edate.format("DD/MM/YYYY"));
+                        $('#afectacion_fecha_fin').datetimepicker('minDate', sdate.format("DD/MM/YYYY"));
+                        var start_hour = start.split(' ')[1].toString().replace(':00.000000','').trim();
+                        var end_hour = end.split(' ')[1].toString().replace(':00.000000','').trim();
+                        var shour = moment(start_date+" "+start_hour,"YYYY-MM-DD HH:mm");
+                        var ehour = moment(end_date+" "+end_hour,"YYYY-MM-DD HH:mm");
+
+                        if(json.allDay !== true){
+                            $('#afectacion_hora_inicio').datetimepicker('date', shour);
+                            if(sdate.format("DD/MM/YYYY") != moment().format("DD/MM/YYYY"))
+                                $('#afectacion_hora_inicio').datetimepicker('minDate', false);
+                            //$('#afectacion_hora_inicio').val(shour.format("HH:mm A"));
+                            $('#afectacion_hora_fin').datetimepicker('date', ehour);
+                            $('#afectacion_hora_fin').datetimepicker('minDate', shour.add(30, 'minute'));
+                        }
+                        else {
+                            $('#afectacion_hora_inicio').val('');
+                            $('#afectacion_hora_fin').val('');
+                            if(sdate.format("DD/MM/YYYY") != moment().format("DD/MM/YYYY"))
+                                $('#afectacion_hora_inicio').datetimepicker('minDate', false);
+                        }
+                        //$('#afectacion_hora_fin').val(ehour.format("HH:mm A"));
+                        //alert(start_date+" "+end_date);
                         if(userId > 0){
                             $('.ms-selectable, #afectacion_save').hide();
                             $('#cancelar').html("Cerrar");
@@ -210,7 +232,6 @@ $(function () {
                     },
                     error: function () {
                         toastr.error('', 'Ha ocurrido un error');
-                        //alert('Ha ocurrido un error');
                         $('.popover').popover('hide');
                     }
                 });
@@ -228,12 +249,10 @@ $(function () {
                         dataType: 'json',
                         success: function (response) {
                             toastr.success('', 'Se eliminó la Afectación correctamente.');
-                            //alert('Se elimino la Afectación correctamente.');
                             $('#calendar-place').fullCalendar('removeEvents', calEvent._id);
                             element.remove();
                         },
                         error: function (e) {
-                            //alert('Error processing your request: ' + e.responseText);
                             toastr.error('', 'Error procesando su solicitud.');
                         }
                     });

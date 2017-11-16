@@ -56,13 +56,22 @@ class CalendarController extends Controller
     public function viewAction(Request $request){
         $id = $request->get('id');
         $repo = $this->get('fados.calendar.service')->getRepo();
+        /** @var Afectacion $evento */
         $evento = $repo->find($id);
         $afectados = $evento->getAfectados();
         $ids = '';
         foreach ($afectados as $afectado)
             $ids .= $afectado->getId().',';
         $tipo = $evento->getMotivo();
-        $dato_evento = array('title' => $evento->getTitle(), 'type' => (isset($tipo))?$evento->getMotivo()->getId():null, 'desc' => $evento->getDescripcion(), 'affected' => trim($ids,','));
+        $dato_evento = array(
+            'title' => $evento->getTitle(),
+            'type' => (isset($tipo))?$evento->getMotivo()->getId():null,
+            'desc' => $evento->getDescripcion(),
+            'affected' => trim($ids,','),
+            'start' => $evento->getStartDatetime(),
+            'end'   => $evento->getEndDatetime(),
+            'allDay' => $evento->getAllDay()
+        );
         return new Response(json_encode($dato_evento));
     }
 
@@ -77,13 +86,24 @@ class CalendarController extends Controller
 
         /** @var Auditoria $auditoria */
 		$auditoria = $event->getAuditoria();
-        $creador = (isset($auditoria))?$auditoria->getUser()->getNombre():"SISTEMA DE SOPORTE";
+        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():"SISTEMA DE SOPORTE":"SISTEMA DE SOPORTE";
 		
         $title = $request->get('title');
         $desc = $request->get('desc');
         $type = $request->get('type');
         $affected = $request->get('affected');
+        $start = $request->get('start', null);
+        $end = $request->get('end', null);
+        if(isset($start, $end))
+            $allDay = (strpos($start,' 00:00') !== false && strpos($end,' 00:00') !== false) ? 1 : 0;
+
         $motivo = $this->getDoctrine()->getRepository('AppBundle:Nomenclador')->find($type);
+        if(isset($start, $end, $allDay)){
+            $event->setStartDatetime(\DateTime::createFromFormat("d-m-Y H:i:s", $start));
+            $event->setEndDatetime(\DateTime::createFromFormat("d-m-Y H:i:s", $end));
+            $event->setAllDay($allDay);
+        }
+
         //Va indicando los cambios que se han ido haciendo en esta actualización para poder enviarlo por correo
         $cambios = '';
 
