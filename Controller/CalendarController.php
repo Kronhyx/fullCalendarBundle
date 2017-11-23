@@ -20,6 +20,7 @@ class CalendarController extends Controller
 
     //Dato mostrado en el titulo de los correos enviados por el sistema
     const DATO_CORREO = 'SISTEMA DE SOPORTE::AFECTACIÓN';
+    const USUARIO_XDEFECTO = 'SISTEMA DE SOPORTE';
 
     function loadAction(Request $request) {
         //Get start date
@@ -86,7 +87,7 @@ class CalendarController extends Controller
 
         /** @var Auditoria $auditoria */
 		$auditoria = $event->getAuditoria();
-        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():"SISTEMA DE SOPORTE":"SISTEMA DE SOPORTE";
+        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():self::USUARIO_XDEFECTO : self::USUARIO_XDEFECTO;
 		
         $title = $request->get('title');
         $desc = $request->get('desc');

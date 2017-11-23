@@ -101,7 +101,7 @@ class CalendarManagerRegistry
             $entity->setAllDay($allDay);
         /** @var Auditoria $auditoria */
         $auditoria = $entity->getAuditoria();
-        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():"SISTEMA DE SOPORTE":"SISTEMA DE SOPORTE";
+        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():CalendarController::USUARIO_XDEFECTO:CalendarController::USUARIO_XDEFECTO;
         //Instancia del objeto encargado de enviar correos.
         $mailer = $this->container->get(MailerService::class);
         foreach ($entity->getAfectados() as $afectado) {
@@ -154,7 +154,7 @@ class CalendarManagerRegistry
 
         /** @var Auditoria $auditoria */
         $auditoria = $entity->getAuditoria();
-        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():"SISTEMA DE SOPORTE":"SISTEMA DE SOPORTE";
+        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():CalendarController::USUARIO_XDEFECTO : CalendarController::USUARIO_XDEFECTO;
 
         //Separo los ids pasados en un arreglo
         $ids = explode(',', $affected);
@@ -194,7 +194,7 @@ class CalendarManagerRegistry
         $entity = $this->manager->getRepository($this->recipient)->find($id);
         /** @var Auditoria $auditoria */
         $auditoria = $entity->getAuditoria();
-        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():"SISTEMA DE SOPORTE":"SISTEMA DE SOPORTE";
+        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():CalendarController::USUARIO_XDEFECTO : CalendarController::USUARIO_XDEFECTO;
         /**
          * @var Usuario $afectado
          */
@@ -232,7 +232,7 @@ class CalendarManagerRegistry
         $entity->setEndDatetime(new \DateTime($newDate));
         /** @var Auditoria $auditoria */
         $auditoria = $entity->getAuditoria();
-        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():"SISTEMA DE SOPORTE":"SISTEMA DE SOPORTE";
+        $creador = (isset($auditoria))?(is_object($auditoria->getUser()))?$auditoria->getUser()->getNombre():CalendarController::USUARIO_XDEFECTO : CalendarController::USUARIO_XDEFECTO;
         //Instancia del objeto para enviar correos
         $mailer = $this->container->get(MailerService::class);
         foreach ($entity->getAfectados() as $afectado) {
