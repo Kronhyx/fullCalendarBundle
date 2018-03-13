@@ -17,10 +17,6 @@
     "friendsofsymfony/jsrouting-bundle": "^2",
     "doctrine/collections": ">=1.0"
   },
-  "require-dev": {
-  },
-  "minimum-stability": "dev",
-  "prefer-stable": true,
   "autoload": {
     "psr-4": {
       "Kronhyx\\fullCalendarBundle\\": ""
