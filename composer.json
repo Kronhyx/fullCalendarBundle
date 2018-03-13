@@ -14,7 +14,6 @@
     }
   ],
   "require": {
-    "symfony/twig-bundle": "~4.0",
     "friendsofsymfony/jsrouting-bundle": "^2",
     "doctrine/collections": ">=1.0"
   },
