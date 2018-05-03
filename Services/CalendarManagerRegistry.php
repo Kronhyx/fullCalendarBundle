@@ -9,10 +9,10 @@
 
 namespace Kronhyx\fullCalendarBundle\Services;
 
-use AppBundle\Entity\Afectacion;
-use AppBundle\Entity\Empresa;
-use AppBundle\Entity\Usuario;
-use AppBundle\Service\MailerService;
+use App\Entity\Afectacion;
+use App\Entity\Empresa;
+use App\Entity\Usuario;
+use App\Service\MailerService;
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Kronhyx\AuditoriaBundle\Entity\Auditoria;
 use Kronhyx\fullCalendarBundle\Controller\CalendarController;
@@ -138,16 +138,14 @@ class CalendarManagerRegistry
      */
     public function storeData($title, $start, $end, $allDay, $color, $affected, $type, $desc, $notify)
     {
-        $parts = explode(':', $this->recipient);
-        $className = $parts[0] . '\\Entity\\' . $parts[1];
-        $ref = new \ReflectionClass($className);
+        $ref = new \ReflectionClass($this->recipient);
         /** @var Afectacion $entity */
         $entity = $ref->newInstance();
         $entity->setStartDatetime(new \DateTime($start));
         $entity->setAllDay($allDay);
         $entity->setBgColor($color);
         $entity->setEndDatetime(new \DateTime($end));
-        $entity->setMotivo($this->manager->getRepository('AppBundle:Nomenclador')->find($type));
+        $entity->setMotivo($this->manager->getRepository('App\Entity\Nomenclador')->find($type));
         $entity->setTitle($title);
         $entity->setActivo(true);
         $entity->setDescripcion($desc);
@@ -162,7 +160,7 @@ class CalendarManagerRegistry
         $mailer = $this->container->get(MailerService::class);
         //Voy creando una a una cada entrada a la tabla Afectado, según la cantidad de usuarios que se vean involucrados en la misma
         foreach ($ids as $id) {
-            $usuario = $this->manager->getRepository('AppBundle:Usuario')->find($id);
+            $usuario = $this->manager->getRepository('App\Entity\Usuario')->find($id);
             $entity->addAfectado($usuario);
             //Envio el correo a todos los afectados
             $mailer->setNombre(CalendarController::DATO_CORREO)

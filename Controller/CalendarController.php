@@ -2,10 +2,10 @@
 
 namespace Kronhyx\fullCalendarBundle\Controller;
 
-use AppBundle\Entity\Afectacion;
-use AppBundle\Entity\Usuario;
-use AppBundle\Service\MailerService;
-use AppBundle\Service\SoporteService;
+use App\Entity\Afectacion;
+use App\Entity\Usuario;
+use App\Service\MailerService;
+use App\Service\SoporteService;
 use Kronhyx\AuditoriaBundle\Entity\Auditoria;
 use Kronhyx\fullCalendarBundle\Services\CalendarManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
@@ -36,8 +36,8 @@ class CalendarController extends Controller
         $full = $request->get('full', false);
         $em = $this->get('doctrine.orm.entity_manager');
         if($userId != 0){
-           $user = $em->find('AppBundle:Usuario', $userId);
-           $events = $em->getRepository('AppBundle:Afectacion')->getAfectacionesByUsuario($user, $full);
+           $user = $em->find('App\Entity\Usuario', $userId);
+           $events = $em->getRepository('App\Entity\Afectacion')->getAfectacionesByUsuario($user, $full);
         }
         else{
             $events = $manager->getEvents($dataFrom,$dataTo);
@@ -98,7 +98,7 @@ class CalendarController extends Controller
         if(isset($start, $end))
             $allDay = (strpos($start,' 00:00') !== false && strpos($end,' 00:00') !== false) ? 1 : 0;
 
-        $motivo = $this->getDoctrine()->getRepository('AppBundle:Nomenclador')->find($type);
+        $motivo = $this->getDoctrine()->getRepository('App\Entity\Nomenclador')->find($type);
         if(isset($start, $end, $allDay)){
             $event->setStartDatetime(\DateTime::createFromFormat("d-m-Y H:i:s", $start));
             $event->setEndDatetime(\DateTime::createFromFormat("d-m-Y H:i:s", $end));
@@ -146,7 +146,7 @@ class CalendarController extends Controller
             /**
              * @var Usuario $se_mantiene
              */
-            $se_mantiene = $this->getDoctrine()->getRepository('AppBundle:Usuario')->find($id_mantiene);
+            $se_mantiene = $this->getDoctrine()->getRepository('App\Entity\Usuario')->find($id_mantiene);
             $mailer->setNombre(self::DATO_CORREO)
                 ->setAsunto(self::DATO_CORREO)
                 ->setDestinatario($se_mantiene->getCorreo())
@@ -178,7 +178,7 @@ class CalendarController extends Controller
             /**
              * @var Usuario $usuario
              */
-            $usuario = $this->getDoctrine()->getRepository('AppBundle:Usuario')->find($id);
+            $usuario = $this->getDoctrine()->getRepository('App\Entity\Usuario')->find($id);
             $event->addAfectado($usuario);
             $mailer->setNombre(self::DATO_CORREO)
                 ->setAsunto(self::DATO_CORREO)
